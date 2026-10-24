@@ -3,6 +3,7 @@
 package nina
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -84,7 +85,13 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 		return &APIError{Path: path, Status: env.StatusCode, Msg: msg}
 	}
 	if out != nil && len(env.Response) > 0 {
-		if err := json.Unmarshal(env.Response, out); err != nil {
+		// N.I.N.A. writes NaN and infinities as strings, which a float64
+		// cannot decode: turn them into null (zero value).
+		raw := env.Response
+		for _, s := range []string{`"NaN"`, `"Infinity"`, `"-Infinity"`} {
+			raw = bytes.ReplaceAll(raw, []byte(s), []byte("null"))
+		}
+		if err := json.Unmarshal(raw, out); err != nil {
 			return fmt.Errorf("N.I.N.A. %s: decoding reply: %w", path, err)
 		}
 	}

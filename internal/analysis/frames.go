@@ -39,9 +39,9 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		PixelUM:       3.76,
-		ApertureMM:    305,
-		FocalMM:       0,
-		PrimaryFRatio: 4.0,
+		ApertureMM:    114,
+		FocalMM:       514,
+		PrimaryFRatio: 4.5,
 		StepUM:        3.36,
 		Sat:           60000,
 		MaxStars:      400,

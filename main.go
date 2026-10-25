@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -64,7 +65,16 @@ func serve() error {
 	}
 	defer conn.Close()
 
-	st := station.New(conn, analysis.DefaultConfig())
+	// Load settings and use their optical configuration
+	ctx := context.Background()
+	settings, err := station.LoadSettings(ctx, db.New(conn))
+	if err != nil {
+		return fmt.Errorf("loading settings: %w", err)
+	}
+
+	// Use analysis package for Config type (referenced via settings.Config())
+	var _ = analysis.Config{}
+	st := station.New(conn, settings.Config())
 	srv, err := web.New(st)
 	if err != nil {
 		return err

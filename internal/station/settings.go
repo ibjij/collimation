@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/exploded/collimation/internal/analysis"
 	"github.com/exploded/collimation/internal/db"
 )
 
@@ -28,10 +29,19 @@ type Settings struct {
 	AnalyseDir     string
 	TargetRA       float64 // collimation field, degrees (0,0 = none yet)
 	TargetDec      float64
+
+	// Optical configuration parameters
+	PixelUM           float64 // pixel size (µm)
+	ApertureMM        float64 // clear aperture (mm)
+	FocalMM           float64 // system focal length (mm); 0 = use FOCALLEN from FITS header
+	PrimaryFRatio     float64 // primary mirror f-ratio used for coma → decentre calculation
+	SecondaryHeightMM float64 // distance from primary face to secondary centre (mm)
+	SecondaryToFocusMM float64 // distance from secondary centre to focus (mm)
 }
 
 // DefaultSettings suit the AT12IN with a ZWO EAF focuser (about 3.3 µm per
 // step, so ±500 steps gives donuts about 110 px across).
+// Optical parameters are for AT12IN (305 mm f/4 primary, Wynne corrector) with ASI2600MM (3.76 µm pixels).
 func DefaultSettings() Settings {
 	return Settings{
 		NinaHost:       "localhost",
@@ -45,6 +55,14 @@ func DefaultSettings() Settings {
 		ToleranceMM:    1.0,
 		CorrectionGain: 0.7,
 		CalTurn:        2,
+
+		// Optical configuration defaults (AT12IN with ASI2600MM)
+		PixelUM:           3.76,
+		ApertureMM:        114,
+		FocalMM:           514,
+		PrimaryFRatio:     4.5,
+		SecondaryHeightMM: 925,
+		SecondaryToFocusMM: 275,
 	}
 }
 
@@ -104,6 +122,13 @@ var fields = []field{
 	strField("analyse_dir", func(s *Settings) *string { return &s.AnalyseDir }),
 	floatField("target_ra", func(s *Settings) *float64 { return &s.TargetRA }),
 	floatField("target_dec", func(s *Settings) *float64 { return &s.TargetDec }),
+	// Optical configuration fields
+	floatField("pixel_um", func(s *Settings) *float64 { return &s.PixelUM }),
+	floatField("aperture_mm", func(s *Settings) *float64 { return &s.ApertureMM }),
+	floatField("focal_mm", func(s *Settings) *float64 { return &s.FocalMM }),
+	floatField("primary_f_ratio", func(s *Settings) *float64 { return &s.PrimaryFRatio }),
+	floatField("secondary_height_mm", func(s *Settings) *float64 { return &s.SecondaryHeightMM }),
+	floatField("secondary_to_focus_mm", func(s *Settings) *float64 { return &s.SecondaryToFocusMM }),
 }
 
 // LoadSettings reads settings, falling back to defaults for missing keys.
@@ -166,6 +191,17 @@ func (s Settings) Validate() error {
 		return fmt.Errorf("correction gain must be between 0 and 1")
 	case s.CalTurn < 0.5 || s.CalTurn > 8:
 		return fmt.Errorf("calibration turn must be 1/16 to 1 turn")
+	// Optical configuration validation
+	case s.PixelUM <= 0:
+		return fmt.Errorf("pixel size must be more than 0 µm")
+	case s.ApertureMM <= 0:
+		return fmt.Errorf("aperture must be more than 0 mm")
+	case s.PrimaryFRatio <= 0:
+		return fmt.Errorf("primary f-ratio must be more than 0")
+	case s.SecondaryHeightMM < 0:
+		return fmt.Errorf("secondary height must be non-negative")
+	case s.SecondaryToFocusMM < 0:
+		return fmt.Errorf("secondary to focus distance must be non-negative")
 	}
 	return nil
 }
@@ -177,4 +213,22 @@ func (s Settings) MapPath(p string) string {
 		return p
 	}
 	return s.PathTo + p[len(s.PathFrom):]
+}
+
+// Config returns the analysis.Config derived from these settings.
+func (s Settings) Config() analysis.Config {
+	return analysis.Config{
+		PixelUM:           s.PixelUM,
+		ApertureMM:        s.ApertureMM,
+		FocalMM:           s.FocalMM,
+		PrimaryFRatio:     s.PrimaryFRatio,
+		SecondaryHeightMM:  s.SecondaryHeightMM,
+		SecondaryToFocusMM: s.SecondaryToFocusMM,
+		// Keep default values for other fields not exposed in settings
+		StepUM:    3.36,  // default from DefaultConfig
+		FocusPos:  s.FocusPos,
+		Sat:       60000, // default from DefaultConfig
+		MaxStars:  400,   // default from DefaultConfig
+		Regions:   3,     // default from DefaultConfig
+	}
 }

@@ -59,6 +59,19 @@
     </div>
   </fieldset>
 
+  <fieldset>
+    <legend>Optical configuration</legend>
+    <p><small>These parameters describe your telescope's optical system. They are used for accurate collimation calculations.</small></p>
+    <div class="grid2">
+      <label>Pixel size (µm)<input name="pixel_um" value="{{f2 .Set.PixelUM}}" inputmode="decimal"><small>Camera pixel size in micrometers</small></label>
+      <label>Aperture (mm)<input name="aperture_mm" value="{{f0 .Set.ApertureMM}}" inputmode="decimal"><small>Primary mirror clear aperture</small></label>
+      <label>Focal length (mm)<input name="focal_mm" value="{{f0 .Set.FocalMM}}" inputmode="decimal"><small>System focal length; 0 = use FITS header FOCALLEN</small></label>
+      <label>Primary f-ratio<input name="primary_f_ratio" value="{{f2 .Set.PrimaryFRatio}}" inputmode="decimal"><small>Primary mirror focal ratio (f/d)</small></label>
+      <label>Primary to secondary (mm)<input name="secondary_height_mm" value="{{f0 .Set.SecondaryHeightMM}}" inputmode="decimal"><small>Distance from primary face to secondary centre</small></label>
+      <label>Secondary to focus (mm)<input name="secondary_to_focus_mm" value="{{f0 .Set.SecondaryToFocusMM}}" inputmode="decimal"><small>Distance from secondary centre to focus</small></label>
+    </div>
+  </fieldset>
+
   <div class="actions sticky"><button class="btn primary" hx-disable="this">Save settings</button></div>
 </form>
 {{end}}{{end}}
